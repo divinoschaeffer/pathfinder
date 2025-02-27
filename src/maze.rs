@@ -76,8 +76,37 @@ impl Maze {
         let random_number: usize = rng.random_range(0..non_visited_neighbours.len());
         let selected_cell = non_visited_neighbours[random_number];
         self.cells[selected_cell.0][selected_cell.1].visited = true;
+        self.open_adjacent_wall(current_cell, selected_cell);
 
         self.path.push(selected_cell);
         self._generate_maze(current_cell_position  + 1)
+    }
+
+    pub fn open_adjacent_wall(
+        &mut self,
+        first: (usize, usize),
+        second: (usize, usize),
+    ) {
+        if first == second {
+            return;
+        }
+
+        let ((row1, col1), (row2, col2)) = (first, second);
+
+        if row1.abs_diff(row2) + col1.abs_diff(col2) != 1 {
+            return;
+        }
+
+        if row1 == row2 {
+            // same row
+            let (left, right) = if col1 < col2 { (first, second) } else { (second, first) };
+            self.cells[left.0][left.1].right_wall = false;
+            self.cells[right.0][right.1].left_wall = false;
+        } else {
+            // same column
+            let (top, bottom) = if row1 < row2 { (first, second) } else { (second, first) };
+            self.cells[top.0][top.1].bottom_wall = false;
+            self.cells[bottom.0][bottom.1].top_wall = false;
+        }
     }
 }

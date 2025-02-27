@@ -6,5 +6,4 @@ mod maze;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let maze: Maze = Maze::generate_maze(20,20);
-    println!("{:?}", maze);
 }

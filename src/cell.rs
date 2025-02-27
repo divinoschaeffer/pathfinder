@@ -11,10 +11,10 @@ impl Default for Cell {
     fn default() -> Self {
         Self {
             visited: false,
-            top_wall: false,
-            bottom_wall: false,
-            left_wall: false,
-            right_wall: false,
+            top_wall: true,
+            bottom_wall: true,
+            left_wall: true,
+            right_wall: true,
         }
     }
 }
