@@ -1,12 +1,20 @@
 #[derive(Debug)]
 pub struct Cell {
-    pub cell_type: CellType
+    pub visited: bool,
+    pub top_wall : bool,
+    pub bottom_wall : bool,
+    pub left_wall : bool,
+    pub right_wall : bool,
 }
 
-#[derive(Debug)]
-pub enum CellType {
-    Path,
-    Start,
-    Finish,
-    Inaccessible,
+impl Default for Cell {
+    fn default() -> Self {
+        Self {
+            visited: false,
+            top_wall: false,
+            bottom_wall: false,
+            left_wall: false,
+            right_wall: false,
+        }
+    }
 }
