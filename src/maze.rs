@@ -7,6 +7,8 @@ pub struct Maze {
     pub height: usize,
     pub cells: Vec<Vec<Cell>>,
     pub path: Vec<(usize, usize)>,
+    pub current_cell: (usize, usize),
+    pub exit: (usize, usize),
 }
 
 impl Maze {
@@ -20,6 +22,8 @@ impl Maze {
             height,
             cells,
             path: Vec::new(),
+            current_cell: (0,0),
+            exit: (width - 1, height - 1),
         }
     }
 
@@ -111,6 +115,14 @@ impl Maze {
             let (top, bottom) = if row1 < row2 { (first, second) } else { (second, first) };
             self.cells[top.0][top.1].bottom_wall = false;
             self.cells[bottom.0][bottom.1].top_wall = false;
+        }
+    }
+
+    pub fn reset_visited_cells(&mut self) {
+        for row in &mut self.cells {
+            for cell in row {
+                cell.visited = false;
+            }
         }
     }
 }

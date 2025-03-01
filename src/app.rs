@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::ops::Deref;
+use std::rc::Rc;
 use crate::maze::Maze;
 use color_eyre::eyre::WrapErr;
 use ratatui::crossterm::event;
@@ -9,19 +12,24 @@ use ratatui::{
     widgets::canvas::{Canvas, Line},
 };
 use ratatui::{DefaultTerminal, Frame};
+use ratatui::crossterm::style::Stylize;
+use ratatui::widgets::canvas::Rectangle;
+use crate::right_hand::RightHand;
 
 #[derive(Debug)]
 pub struct App {
     exit: bool,
-    pub maze: Maze,
+    pub maze: Rc<RefCell<Maze>>,
+    pub solver : RightHand,
 }
 
 impl App {
 
-    pub fn new(maze: Maze) -> Self {
+    pub fn new(maze: Rc<RefCell<Maze>>) -> Self {
         Self {
             exit: false,
-            maze
+            maze: maze.clone(),
+            solver: RightHand::new(maze.clone()),
         }
     }
 
@@ -43,7 +51,7 @@ impl App {
 
         frame.render_widget(block, area);
 
-        draw_maze(&self.maze, area, frame.buffer_mut());
+        draw_maze(self.maze.borrow().deref(), area, frame.buffer_mut());
     }
 
     fn handle_events(&mut self) -> color_eyre::Result<()> {
@@ -60,6 +68,12 @@ impl App {
             KeyCode::Char('q') if key.modifiers == KeyModifiers::CONTROL => {
                 self.exit = true;
             },
+            KeyCode::Char('a') => {
+                self.solver.automatic_execution();
+            },
+            KeyCode::Right => {
+                self.solver.step();
+            },
             _ => ()
         }
         Ok(())
@@ -70,15 +84,37 @@ pub fn draw_maze(maze: &Maze, area: Rect, buf: &mut Buffer) {
     let width = maze.width as f64;
     let height = maze.height as f64;
 
+    let instructions = text::Line::from(vec![
+        " One Iteration ".into(),
+        "<Right>".blue().bold(),
+        " Automatic ".into(),
+        "<A>".blue().bold(),
+        " Quit ".into(),
+        " <Ctrl-Q> ".blue().bold(),
+    ]);
+
     let canvas = Canvas::default()
-        .block(Block::default().title("Maze").borders(Borders::ALL))
+        .block(Block::default().title("Maze").borders(Borders::ALL).title_bottom(instructions.centered()))
         .x_bounds([0.0, width])
         .y_bounds([0.0, height])
         .paint(|ctx| {
+            let current_cell = maze.current_cell;
+            let exit_cell = (maze.height - 1, maze.width - 1);
+
             for (i, row) in maze.cells.iter().enumerate() {
                 for (j, cell) in row.iter().enumerate() {
                     let x = j as f64;
                     let y = i as f64;
+
+                    if cell.visited {
+                        ctx.draw(&Rectangle {
+                            x,
+                            y,
+                            width: 1.0,
+                            height: 1.0,
+                            color: Color::DarkGray,
+                        });
+                    }
 
                     if cell.top_wall {
                         ctx.draw(&Line { x1: x, y1: y, x2: x + 1.0, y2: y, color: Color::White });
@@ -96,7 +132,28 @@ pub fn draw_maze(maze: &Maze, area: Rect, buf: &mut Buffer) {
             }
 
             ctx.print(0.5, 0.5, "S".green());
+
+            if current_cell == exit_cell {
+                ctx.print(
+                    current_cell.1 as f64 + 0.5,
+                    current_cell.0 as f64 + 0.5,
+                    "PE".blue(),
+                )
+            } else {
+                ctx.print(
+                    current_cell.1 as f64 + 0.5,
+                    current_cell.0 as f64 + 0.5,
+                    "P".yellow(),
+                );
+
+                ctx.print(
+                    exit_cell.1 as f64 + 0.5,
+                    exit_cell.0 as f64 + 0.5,
+                    "E".red(),
+                );
+            }
         });
 
     canvas.render(area, buf);
 }
+
