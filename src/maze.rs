@@ -45,7 +45,7 @@ impl Maze {
     pub fn get_non_visited_neighbours(&self, i: usize, j: usize) -> Vec<(usize, usize)> {
         let mut non_visited = Vec::new();
         let neighbours = self.get_neighbours(i, j);
-        for (row,col) in neighbours {
+        for (row, col) in neighbours {
             if !self.cells[row][col].visited {
                 non_visited.push((row, col));
             }
@@ -54,32 +54,38 @@ impl Maze {
     }
 
     pub fn generate_maze(width: usize, height: usize) -> Maze {
-        let mut maze: Maze = Maze::new(width, height);
+        let mut maze = Maze::new(width, height);
+
         maze.cells[0][0].visited = true;
-        maze.path.push((0,0));
-        maze._generate_maze(0);
+
+        let mut stack = Vec::new();
+        stack.push((0, 0));
+        maze.path.push((0, 0));
+
+        while let Some(current_cell) = stack.last().copied() {
+            let non_visited_neighbours = maze.get_non_visited_neighbours(current_cell.0, current_cell.1);
+
+            if non_visited_neighbours.is_empty() {
+                stack.pop();
+
+                if stack.is_empty() {
+                    break;
+                }
+            } else {
+                let mut rng = rand::rng();
+                let random_number: usize = rng.random_range(0..non_visited_neighbours.len());
+                let selected_cell = non_visited_neighbours[random_number];
+
+                maze.cells[selected_cell.0][selected_cell.1].visited = true;
+
+                maze.open_adjacent_wall(current_cell, selected_cell);
+
+                stack.push(selected_cell);
+                maze.path.push(selected_cell);
+            }
+        }
+
         maze
-    }
-
-    pub fn _generate_maze(&mut self, current_cell_position: usize) -> &mut Maze {
-        let current_cell = self.path[current_cell_position];
-        if self.path.len() != 1 && current_cell == (0,0) {
-            return self
-        }
-
-        let non_visited_neighbours = self.get_non_visited_neighbours(current_cell.0, current_cell.1);
-        if non_visited_neighbours.len() == 0 {
-            return self._generate_maze(current_cell_position - 1)
-        }
-
-        let mut rng = rand::rng();
-        let random_number: usize = rng.random_range(0..non_visited_neighbours.len());
-        let selected_cell = non_visited_neighbours[random_number];
-        self.cells[selected_cell.0][selected_cell.1].visited = true;
-        self.open_adjacent_wall(current_cell, selected_cell);
-
-        self.path.push(selected_cell);
-        self._generate_maze(current_cell_position  + 1)
     }
 
     pub fn open_adjacent_wall(
@@ -98,12 +104,10 @@ impl Maze {
         }
 
         if row1 == row2 {
-            // same row
             let (left, right) = if col1 < col2 { (first, second) } else { (second, first) };
             self.cells[left.0][left.1].right_wall = false;
             self.cells[right.0][right.1].left_wall = false;
         } else {
-            // same column
             let (top, bottom) = if row1 < row2 { (first, second) } else { (second, first) };
             self.cells[top.0][top.1].bottom_wall = false;
             self.cells[bottom.0][bottom.1].top_wall = false;

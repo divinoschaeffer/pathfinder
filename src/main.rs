@@ -1,12 +1,11 @@
+use crate::app::App;
 use crate::maze::Maze;
 use clap::{arg, command, value_parser};
 use color_eyre::Result;
-use ratatui::{DefaultTerminal, Frame};
-use ratatui::crossterm::event;
-use ratatui::crossterm::event::Event;
 
 mod cell;
 mod maze;
+mod app;
 
 fn main() -> Result<()>{
     let matches = command!()
@@ -24,23 +23,10 @@ fn main() -> Result<()>{
     };
 
     color_eyre::install()?;
-    let terminal = ratatui::init();
-    let result = run(terminal);
+    let mut terminal = ratatui::init();
     let maze: Maze = Maze::generate_maze(width,height);
+    let result = App::new(maze).run(&mut terminal);
 
     ratatui::restore();
     result
-}
-
-fn run(mut terminal: DefaultTerminal) -> Result<()> {
-    loop {
-        terminal.draw(render)?;
-        if matches!(event::read()?, Event::Key(_)) {
-            break Ok(());
-        }
-    }
-}
-
-fn render(frame: &mut Frame) {
-    frame.render_widget("hello world", frame.area());
 }
