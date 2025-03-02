@@ -12,7 +12,6 @@ use ratatui::{
     widgets::canvas::{Canvas, Line},
 };
 use ratatui::{DefaultTerminal, Frame};
-use ratatui::crossterm::style::Stylize;
 use ratatui::widgets::canvas::Rectangle;
 use crate::right_hand::RightHand;
 
