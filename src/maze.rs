@@ -126,3 +126,147 @@ impl Maze {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_maze() {
+        let width = 10;
+        let height = 10;
+        let maze = Maze::generate_maze(width, height);
+
+        assert_eq!(maze.width, width);
+        assert_eq!(maze.height, height);
+        assert_eq!(maze.cells.len(), height);
+        assert_eq!(maze.cells[0].len(), width);
+
+        for row in &maze.cells {
+            for cell in row {
+                assert!(cell.visited, "All cells should be visited in a perfect maze.");
+            }
+        }
+
+        assert_eq!(maze.path.len(), width * height, "The path should cover the entire maze.");
+    }
+
+    #[test]
+    fn test_get_neighbours() {
+        let maze = Maze::new(5, 5);
+
+        // Cell in the center (should have 4 neighbors)
+        let neighbours = maze.get_neighbours(2, 2);
+        let expected = vec![(1, 2), (3, 2), (2, 1), (2, 3)];
+        assert_eq!(neighbours, expected, "The center cell should have 4 neighbors");
+
+        // Top-left corner (should have 2 neighbors)
+        let neighbours = maze.get_neighbours(0, 0);
+        let expected = vec![(1, 0), (0, 1)];
+        assert_eq!(neighbours, expected, "The top-left cell should have 2 neighbors");
+
+        // Bottom-right corner (should have 2 neighbors)
+        let neighbours = maze.get_neighbours(4, 4);
+        let expected = vec![(3, 4), (4, 3)];
+        assert_eq!(neighbours, expected, "The bottom-right cell should have 2 neighbors");
+
+        // Left edge (should have 3 neighbors)
+        let neighbours = maze.get_neighbours(2, 0);
+        let expected = vec![(1, 0), (3, 0), (2, 1)];
+        assert_eq!(neighbours, expected, "A left-edge cell should have 3 neighbors");
+
+        // Bottom edge (should have 3 neighbors)
+        let neighbours = maze.get_neighbours(4, 2);
+        let expected = vec![(3, 2), (4, 1), (4, 3)];
+        assert_eq!(neighbours, expected, "A bottom-edge cell should have 3 neighbors");
+    }
+
+    #[test]
+    fn test_get_non_visited_neighbours() {
+        let mut maze = Maze::new(5, 5);
+
+        // Initially, all cells are unvisited, so all neighbors should be returned.
+        let non_visited = maze.get_non_visited_neighbours(2, 2);
+        let expected = vec![(1, 2), (3, 2), (2, 1), (2, 3)];
+        assert_eq!(non_visited, expected, "All neighbors should be unvisited at the start");
+
+        // Mark (1,2) as visited
+        maze.cells[1][2].visited = true;
+        let non_visited = maze.get_non_visited_neighbours(2, 2);
+        let expected = vec![(3, 2), (2, 1), (2, 3)];
+        assert_eq!(non_visited, expected, "Cell (1,2) should no longer be in the list");
+
+        // Mark all neighbors as visited
+        maze.cells[3][2].visited = true;
+        maze.cells[2][1].visited = true;
+        maze.cells[2][3].visited = true;
+        let non_visited = maze.get_non_visited_neighbours(2, 2);
+        assert!(non_visited.is_empty(), "There should be no unvisited neighbors");
+
+        // Test on a corner (0,0), initially all neighbors should be unvisited
+        let non_visited = maze.get_non_visited_neighbours(0, 0);
+        let expected = vec![(1, 0), (0, 1)];
+        assert_eq!(non_visited, expected, "The top-left corner should have 2 unvisited neighbors");
+
+        // Mark (1,0) as visited
+        maze.cells[1][0].visited = true;
+        let non_visited = maze.get_non_visited_neighbours(0, 0);
+        let expected = vec![(0, 1)];
+        assert_eq!(non_visited, expected, "Only (0,1) should be unvisited now");
+
+        // Mark (0,1) as visited
+        maze.cells[0][1].visited = true;
+        let non_visited = maze.get_non_visited_neighbours(0, 0);
+        assert!(non_visited.is_empty(), "No unvisited neighbors should be left for (0,0)");
+    }
+
+    #[test]
+    fn test_open_adjacent_wall_horizontal() {
+        let mut maze = Maze::new(5, 5);
+
+        // Open wall between (2,2) and (2,3)
+        maze.open_adjacent_wall((2, 2), (2, 3));
+
+        // Check walls
+        assert!(!maze.cells[2][2].right_wall, "Right wall of (2,2) should be open");
+        assert!(!maze.cells[2][3].left_wall, "Left wall of (2,3) should be open");
+    }
+
+    #[test]
+    fn test_open_adjacent_wall_vertical() {
+        let mut maze = Maze::new(5, 5);
+
+        // Open wall between (2,2) and (3,2)
+        maze.open_adjacent_wall((2, 2), (3, 2));
+
+        // Check walls
+        assert!(!maze.cells[2][2].bottom_wall, "Bottom wall of (2,2) should be open");
+        assert!(!maze.cells[3][2].top_wall, "Top wall of (3,2) should be open");
+    }
+
+    #[test]
+    fn test_open_adjacent_wall_non_adjacent() {
+        let mut maze = Maze::new(5, 5);
+
+        // Attempt to open wall between non-adjacent cells (should not change anything)
+        maze.open_adjacent_wall((2, 2), (4, 2));
+
+        // Check that walls remain closed
+        assert!(maze.cells[2][2].bottom_wall, "Bottom wall of (2,2) should remain closed");
+        assert!(maze.cells[4][2].top_wall, "Top wall of (4,2) should remain closed");
+    }
+
+    #[test]
+    fn test_open_adjacent_wall_same_cell() {
+        let mut maze = Maze::new(5, 5);
+
+        // Opening wall between the same cell should do nothing
+        maze.open_adjacent_wall((2, 2), (2, 2));
+
+        // Ensure all walls remain closed
+        assert!(maze.cells[2][2].top_wall, "Top wall of (2,2) should remain closed");
+        assert!(maze.cells[2][2].bottom_wall, "Bottom wall of (2,2) should remain closed");
+        assert!(maze.cells[2][2].left_wall, "Left wall of (2,2) should remain closed");
+        assert!(maze.cells[2][2].right_wall, "Right wall of (2,2) should remain closed");
+    }
+}
