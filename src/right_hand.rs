@@ -101,3 +101,68 @@ fn get_next_cell(maze: &Maze, current_direction: Direction) -> ((usize, usize), 
 
     ((row, column), current_direction)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_test_maze() -> Rc<RefCell<Maze>> {
+        let mut maze = Maze::new(3, 3);
+
+        // Remove walls to create a simple path
+        maze.cells[0][0].right_wall = false;
+        maze.cells[0][1].left_wall = false;
+        maze.cells[0][1].bottom_wall = false;
+        maze.cells[1][1].top_wall = false;
+        maze.cells[1][1].right_wall = false;
+        maze.cells[1][2].left_wall = false;
+        maze.cells[1][2].bottom_wall = false;
+        maze.cells[2][2].top_wall = false;
+
+        Rc::new(RefCell::new(maze))
+    }
+
+    #[test]
+    fn test_right_hand_initialization() {
+        let maze = create_test_maze();
+        let solver = RightHand::new(maze.clone());
+
+        assert_eq!(solver.current_direction, Direction::North);
+    }
+
+    #[test]
+    fn test_right_hand_step() {
+        let maze = create_test_maze();
+        let mut solver = RightHand::new(maze.clone());
+
+        // Initial position (0,0)
+        assert_eq!(maze.borrow().current_cell, (0, 0));
+
+        solver.step();
+
+        // After one step, should move to (0,1)
+        assert_eq!(maze.borrow().current_cell, (0, 1));
+    }
+
+    #[test]
+    fn test_right_hand_execution() {
+        let maze = create_test_maze();
+        let mut solver = RightHand::new(maze.clone());
+
+        solver.automatic_execution();
+
+        // The solver should reach the exit (2,2)
+        assert_eq!(maze.borrow().current_cell, (2, 2));
+    }
+
+    #[test]
+    fn test_get_next_cell() {
+        let maze = create_test_maze();
+        let borrowed_maze = maze.borrow();
+
+        let ((next_x, next_y), next_dir) = get_next_cell(&borrowed_maze, Direction::North);
+
+        assert_eq!((next_x, next_y), (0, 1));
+        assert_eq!(next_dir, Direction::East);
+    }
+}
